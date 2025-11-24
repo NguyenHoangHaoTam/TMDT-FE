@@ -188,6 +188,21 @@ export default function OrderTable({ searchTerm = "", selectedStatus = "Táº¥t cá
     return true;
   }) || [];
 
+  const sortedOrders = filteredOrders
+    .map((order) => ({
+      ...order,
+      _parsedDate: parseOrderDate(order.createdAt),
+    }))
+    .sort((a, b) => {
+      const timeA = a._parsedDate?.getTime() ?? 0;
+      const timeB = b._parsedDate?.getTime() ?? 0;
+      if (timeA === timeB) {
+        return b.id - a.id;
+      }
+      return timeB - timeA;
+    })
+    .map(({ _parsedDate, ...order }) => order);
+
   function formatOrderType(type: string) {
     switch (type) {
       case "SHARED_CART":
@@ -239,7 +254,7 @@ export default function OrderTable({ searchTerm = "", selectedStatus = "Táº¥t cá
 
           {/* Body */}
           <tbody>
-            {filteredOrders.length === 0 ? (
+            {sortedOrders.length === 0 ? (
               <tr>
                 <td
                   colSpan={8}
@@ -251,7 +266,7 @@ export default function OrderTable({ searchTerm = "", selectedStatus = "Táº¥t cá
                 </td>
               </tr>
             ) : (
-              filteredOrders.map((order) => (
+              sortedOrders.map((order) => (
                 <tr
                   key={order.id}
                   className="hover:bg-accent transition-colors border-b border-border"
