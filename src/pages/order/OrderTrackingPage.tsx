@@ -128,10 +128,13 @@ function parseOrderDate(dateString: string): Date {
   }
 
   const [datePart, timePart = "00:00:00"] = normalized.split("T");
-  const [year, month, day] = datePart.split("-").map(Number);
+  const [year, month, day] = datePart.split(/[-/]/).map(Number);
   const [hour = "0", minute = "0", second = "0"] = timePart.split(":");
 
-  return new Date(year, month - 1, Number(day), Number(hour), Number(minute), Number(second));
+  // Backend đang trả về chuỗi thời gian không kèm timezone => hiểu là UTC rồi chuyển sang giờ địa phương
+  return new Date(
+    Date.UTC(year, month - 1, Number(day), Number(hour), Number(minute), Number(second))
+  );
 }
 
 function formatDate(dateString: string): string {
