@@ -1,6 +1,6 @@
 import { Truck, Clock, CheckCircle, AlertCircle, Zap } from "lucide-react";
 import { useManageOrder } from "@/hook/admin/use-order-manage";
-import { format, parse } from "date-fns";
+import { format } from "date-fns";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -56,16 +56,44 @@ export function AlertDialogDemo({
   );
 }
 
-export function formatOrderDate(dateString: string) {
-  if (!dateString) return "";
+function parseOrderDate(dateString: string): Date | null {
+  if (!dateString) return null;
 
-  try {
-    const date = parse(dateString, "yyyy-MM-dd HH:mm:ss", new Date());
-    return format(date, "dd/MM/yyyy");
-  } catch (error) {
+  const normalized = dateString.replace(" ", "T");
+  const hasTimezone = /[+-]\d{2}:?\d{2}$|Z$/i.test(normalized);
+
+  if (hasTimezone) {
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const [datePart, timePart = "00:00:00"] = normalized.split("T");
+  const [year, month, day] = datePart.split(/[-/]/).map(Number);
+  const [hour = "0", minute = "0", second = "0"] = timePart.split(":");
+
+  if ([year, month, day].some((value) => Number.isNaN(value))) {
+    return null;
+  }
+
+  const asUtc = new Date(
+    Date.UTC(year, month - 1, Number(day), Number(hour), Number(minute), Number(second))
+  );
+
+  // Nếu convert sang UTC mà thời gian nằm >5 phút trong tương lai thì fallback về local
+  if (asUtc.getTime() - Date.now() > 5 * 60 * 1000) {
+    return new Date(year, month - 1, Number(day), Number(hour), Number(minute), Number(second));
+  }
+
+  return asUtc;
+}
+
+export function formatOrderDate(dateString: string) {
+  const date = parseOrderDate(dateString);
+  if (!date) {
     console.error("Invalid date:", dateString);
     return "";
   }
+  return format(date, "dd/MM/yyyy");
 }
 
 // interface OrderTableProps {
