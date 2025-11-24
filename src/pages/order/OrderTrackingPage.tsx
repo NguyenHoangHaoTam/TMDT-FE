@@ -16,6 +16,7 @@ import {
   Clock,
   ArrowRight,
   Sparkles,
+  Lock,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,7 @@ import {
 import { formatMoney } from "@/utils/helper";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { useAuthStore } from "@/store/use-auth.store";
 
 const statusConfig: Record<
   OrderStatus,
@@ -169,6 +171,8 @@ function formatFullDate(dateString: string): string {
 export default function OrderTrackingPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const token = useAuthStore((state) => state.token);
+  const isAuthenticated = Boolean(token);
   const [allOrders, setAllOrders] = useState<CombinedOrder[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | "ALL">("ALL");
@@ -180,11 +184,13 @@ export default function OrderTrackingPage() {
   const { data: personalOrders, isLoading: isLoadingPersonal } = useQuery({
     queryKey: ["personal-order-history"],
     queryFn: getPersonalOrderHistory,
+    enabled: isAuthenticated,
   });
 
   const { data: sharedOrders, isLoading: isLoadingShared } = useQuery({
     queryKey: ["shared-order-history"],
     queryFn: getSharedOrderHistory,
+    enabled: isAuthenticated,
   });
 
   const confirmReceivedMutation = useMutation({
@@ -312,6 +318,46 @@ export default function OrderTrackingPage() {
   }, [allOrders, selectedStatus, selectedOrderType, searchQuery, selectedTimeFilter, sortDirection]);
 
   const isLoading = isLoadingPersonal || isLoadingShared;
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+        <div className="container mx-auto px-4 py-8 lg:py-12">
+          <div className="max-w-3xl mx-auto text-center space-y-6 rounded-3xl bg-white p-10 shadow-lg shadow-emerald-100">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <Lock className="h-8 w-8" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium uppercase tracking-widest text-emerald-600">
+                Theo dõi đơn hàng
+              </p>
+              <h1 className="text-3xl font-bold text-gray-900">Bạn cần đăng nhập</h1>
+              <p className="text-base text-gray-600">
+                Vui lòng đăng nhập để xem và quản lý các đơn hàng cá nhân cũng như đơn chia sẻ.
+              </p>
+            </div>
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <Button
+                size="lg"
+                className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700"
+                onClick={() => navigate("/auth/login")}
+              >
+                Đăng nhập ngay
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto border-emerald-100 text-emerald-700 hover:border-emerald-300"
+                onClick={() => navigate("/")}
+              >
+                Quay lại mua sắm
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleOrderClick = (orderId: number) => {
     navigate(`/orders/${orderId}`);
