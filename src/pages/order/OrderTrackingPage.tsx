@@ -42,6 +42,7 @@ import { formatMoney } from "@/utils/helper";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/store/use-auth.store";
+import { parseApiDate } from "@/utils/date";
 
 const statusConfig: Record<
   OrderStatus,
@@ -117,34 +118,7 @@ const timeFilterOptions: { value: TimeFilter; label: string }[] = [
   { value: "THIS_YEAR", label: "Năm nay" },
 ];
 
-function parseOrderDate(dateString: string): Date {
-  if (!dateString) return new Date();
-
-  const normalized = dateString.replace(" ", "T");
-  const hasTimezone = /[+-]\d{2}:?\d{2}$|Z$/i.test(normalized);
-
-  if (hasTimezone) {
-    return new Date(normalized);
-  }
-
-  const [datePart, timePart = "00:00:00"] = normalized.split("T");
-  const [year, month, day] = datePart.split(/[-/]/).map(Number);
-  const [hour = "0", minute = "0", second = "0"] = timePart.split(":");
-
-  // Ưu tiên hiểu chuỗi là UTC để phù hợp với dữ liệu mới
-  const asUtc = new Date(
-    Date.UTC(year, month - 1, Number(day), Number(hour), Number(minute), Number(second))
-  );
-
-  // Nhưng nhiều đơn cũ được lưu theo giờ địa phương (không timezone). Nếu sau khi convert UTC mà
-  // thời gian nằm ở tương lai hơn hiện tại > 5 phút, fallback sang local time để tránh “vừa xong” giả.
-  const now = new Date();
-  if (asUtc.getTime() - now.getTime() > 5 * 60 * 1000) {
-    return new Date(year, month - 1, Number(day), Number(hour), Number(minute), Number(second));
-  }
-
-  return asUtc;
-}
+const parseOrderDate = (dateString: string): Date => parseApiDate(dateString);
 
 function formatDate(dateString: string): string {
   const date = parseOrderDate(dateString);

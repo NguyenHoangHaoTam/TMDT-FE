@@ -8,6 +8,7 @@ import type { Notification } from "@/types/notification.type";
 import { NotificationActionType } from "@/types/notification.type";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/utils/helper";
+import { formatRelativeTime } from "@/utils/date";
 
 interface NotificationItemProps {
   notification: Notification;
@@ -73,21 +74,6 @@ export function NotificationItem({ notification, onAction }: NotificationItemPro
     ) {
       navigate(`/orders/${notification.metadata.orderId}`);
     }
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return "Vừa xong";
-    if (diffMins < 60) return `${diffMins} phút trước`;
-    if (diffHours < 24) return `${diffHours} giờ trước`;
-    if (diffDays < 7) return `${diffDays} ngày trước`;
-    return date.toLocaleDateString("vi-VN");
   };
 
   const isInvitation =
@@ -166,7 +152,7 @@ export function NotificationItem({ notification, onAction }: NotificationItemPro
 
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-xs text-gray-400">
-                  {formatTime(notification.createdAt)}
+                  {formatRelativeTime(notification.createdAt)}
                 </span>
                 {!notification.readFlag && (
                   <span

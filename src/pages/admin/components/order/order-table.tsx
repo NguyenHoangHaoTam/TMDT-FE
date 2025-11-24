@@ -21,6 +21,7 @@ import type React from "react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import LoadingBtn from "@/components/common/loading-btn";
+import { parseApiDate } from "@/utils/date";
 
 export function AlertDialogDemo({
   isOpen,
@@ -56,40 +57,9 @@ export function AlertDialogDemo({
   );
 }
 
-function parseOrderDate(dateString: string): Date | null {
-  if (!dateString) return null;
-
-  const normalized = dateString.replace(" ", "T");
-  const hasTimezone = /[+-]\d{2}:?\d{2}$|Z$/i.test(normalized);
-
-  if (hasTimezone) {
-    const parsed = new Date(normalized);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
-
-  const [datePart, timePart = "00:00:00"] = normalized.split("T");
-  const [year, month, day] = datePart.split(/[-/]/).map(Number);
-  const [hour = "0", minute = "0", second = "0"] = timePart.split(":");
-
-  if ([year, month, day].some((value) => Number.isNaN(value))) {
-    return null;
-  }
-
-  const asUtc = new Date(
-    Date.UTC(year, month - 1, Number(day), Number(hour), Number(minute), Number(second))
-  );
-
-  // Nếu convert sang UTC mà thời gian nằm >5 phút trong tương lai thì fallback về local
-  if (asUtc.getTime() - Date.now() > 5 * 60 * 1000) {
-    return new Date(year, month - 1, Number(day), Number(hour), Number(minute), Number(second));
-  }
-
-  return asUtc;
-}
-
 export function formatOrderDate(dateString: string) {
-  const date = parseOrderDate(dateString);
-  if (!date) {
+  const date = parseApiDate(dateString);
+  if (Number.isNaN(date.getTime())) {
     console.error("Invalid date:", dateString);
     return "";
   }
@@ -191,7 +161,7 @@ export default function OrderTable({ searchTerm = "", selectedStatus = "Tất c�
   const sortedOrders = filteredOrders
     .map((order) => ({
       ...order,
-      _parsedDate: parseOrderDate(order.createdAt),
+      _parsedDate: parseApiDate(order.createdAt),
     }))
     .sort((a, b) => {
       const timeA = a._parsedDate?.getTime() ?? 0;
