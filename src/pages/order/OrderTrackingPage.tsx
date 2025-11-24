@@ -24,6 +24,13 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   getPersonalOrderHistory,
   getSharedOrderHistory,
   confirmReceived,
@@ -97,8 +104,36 @@ interface CombinedOrder extends OrderSummary {
   orderType: "SINGLE" | "GROUP";
 }
 
+type TimeFilter = "ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "THIS_YEAR";
+type SortDirection = "DESC" | "ASC";
+
+const timeFilterOptions: { value: TimeFilter; label: string }[] = [
+  { value: "ALL", label: "Tất cả thời gian" },
+  { value: "TODAY", label: "Hôm nay" },
+  { value: "LAST_7_DAYS", label: "7 ngày gần đây" },
+  { value: "LAST_30_DAYS", label: "30 ngày gần đây" },
+  { value: "THIS_YEAR", label: "Năm nay" },
+];
+
+function parseOrderDate(dateString: string): Date {
+  if (!dateString) return new Date();
+
+  const normalized = dateString.replace(" ", "T");
+  const hasTimezone = /[+-]\d{2}:?\d{2}$|Z$/i.test(normalized);
+
+  if (hasTimezone) {
+    return new Date(normalized);
+  }
+
+  const [datePart, timePart = "00:00:00"] = normalized.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour = "0", minute = "0", second = "0"] = timePart.split(":");
+
+  return new Date(year, month - 1, Number(hour), Number(minute), Number(second));
+}
+
 function formatDate(dateString: string): string {
-  const date = new Date(dateString);
+  const date = parseOrderDate(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / 86400000);
@@ -120,7 +155,7 @@ function formatDate(dateString: string): string {
 }
 
 function formatFullDate(dateString: string): string {
-  const date = new Date(dateString);
+  const date = parseOrderDate(dateString);
   return date.toLocaleDateString("vi-VN", {
     weekday: "long",
     year: "numeric",
@@ -138,6 +173,8 @@ export default function OrderTrackingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | "ALL">("ALL");
   const [selectedOrderType, setSelectedOrderType] = useState<"ALL" | "SINGLE" | "GROUP">("ALL");
+  const [selectedTimeFilter, setSelectedTimeFilter] = useState<TimeFilter>("ALL");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("DESC");
   const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
 
   const { data: personalOrders, isLoading: isLoadingPersonal } = useQuery({
@@ -184,10 +221,10 @@ export default function OrderTrackingPage() {
       });
     }
 
-    // Sắp xếp theo ngày tạo mới nhất
+    // Sắp xếp mặc định theo ngày tạo mới nhất
     combined.sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
+      const dateA = parseOrderDate(a.createdAt).getTime();
+      const dateB = parseOrderDate(b.createdAt).getTime();
       return dateB - dateA;
     });
 
@@ -213,7 +250,38 @@ export default function OrderTrackingPage() {
 
   // Filter orders
   const filteredOrders = useMemo(() => {
-    let filtered = allOrders;
+    let filtered = [...allOrders];
+
+    // Filter by time range
+    if (selectedTimeFilter !== "ALL") {
+      const now = new Date();
+      filtered = filtered.filter((order) => {
+        const orderDate = parseOrderDate(order.createdAt);
+
+        switch (selectedTimeFilter) {
+          case "TODAY": {
+            return (
+              orderDate.getFullYear() === now.getFullYear() &&
+              orderDate.getMonth() === now.getMonth() &&
+              orderDate.getDate() === now.getDate()
+            );
+          }
+          case "LAST_7_DAYS": {
+            const diff = now.getTime() - orderDate.getTime();
+            return diff <= 7 * 24 * 60 * 60 * 1000;
+          }
+          case "LAST_30_DAYS": {
+            const diff = now.getTime() - orderDate.getTime();
+            return diff <= 30 * 24 * 60 * 60 * 1000;
+          }
+          case "THIS_YEAR": {
+            return orderDate.getFullYear() === now.getFullYear();
+          }
+          default:
+            return true;
+        }
+      });
+    }
 
     // Filter by order type
     if (selectedOrderType !== "ALL") {
@@ -233,8 +301,15 @@ export default function OrderTrackingPage() {
       });
     }
 
+    // Sort by selected direction
+    filtered.sort((a, b) => {
+      const dateA = parseOrderDate(a.createdAt).getTime();
+      const dateB = parseOrderDate(b.createdAt).getTime();
+      return sortDirection === "DESC" ? dateB - dateA : dateA - dateB;
+    });
+
     return filtered;
-  }, [allOrders, selectedStatus, selectedOrderType, searchQuery]);
+  }, [allOrders, selectedStatus, selectedOrderType, searchQuery, selectedTimeFilter, sortDirection]);
 
   const isLoading = isLoadingPersonal || isLoadingShared;
 
@@ -419,6 +494,46 @@ export default function OrderTrackingPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-11 h-12 text-base border-gray-200 focus:border-green-500 focus:ring-green-500/20"
                 />
+              </div>
+
+              {/* Time filter + Sort */}
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-wrap gap-2">
+                  {timeFilterOptions.map((option) => {
+                    const isActive = selectedTimeFilter === option.value;
+                    return (
+                      <Button
+                        key={option.value}
+                        variant={isActive ? "default" : "outline"}
+                        className={cn(
+                          "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                          isActive
+                            ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-green-500/30"
+                            : "border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:text-green-600"
+                        )}
+                        onClick={() => setSelectedTimeFilter(option.value)}
+                      >
+                        {option.label}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <TrendingUp className="h-4 w-4 text-gray-500" />
+                  <Select
+                    value={sortDirection}
+                    onValueChange={(value) => setSortDirection(value as SortDirection)}
+                  >
+                    <SelectTrigger className="w-48 border-gray-200 bg-white focus:ring-green-500/20">
+                      <SelectValue placeholder="Sắp xếp" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DESC">Mới nhất</SelectItem>
+                      <SelectItem value="ASC">Cũ nhất</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Status Tabs */}
