@@ -129,7 +129,7 @@ function parseOrderDate(dateString: string): Date {
   const [year, month, day] = datePart.split("-").map(Number);
   const [hour = "0", minute = "0", second = "0"] = timePart.split(":");
 
-  return new Date(year, month - 1, Number(hour), Number(minute), Number(second));
+  return new Date(year, month - 1, Number(day), Number(hour), Number(minute), Number(second));
 }
 
 function formatDate(dateString: string): string {
