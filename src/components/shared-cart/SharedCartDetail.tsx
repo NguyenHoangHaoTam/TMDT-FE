@@ -10,7 +10,6 @@ import { useAuthStore } from "@/store/use-auth.store";
 import { InviteParticipantDialog } from "./InviteParticipantDialog";
 import { SharedCartCheckoutDialog } from "./SharedCartCheckoutDialog";
 import { getSharedOrderHistory, getOrderDetail } from "@/service/order/service";
-import toast from "react-hot-toast";
 import {
   Plus,
   UserPlus,
@@ -26,11 +25,9 @@ import {
   CreditCard,
   CheckCircle2,
   ArrowLeft,
-  Calendar,
   Clock,
   TrendingUp,
   Package,
-  Sparkles,
 } from "lucide-react";
 import { formatMoney } from "@/utils/helper";
 import { cn } from "@/lib/utils";
@@ -55,12 +52,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-const statusColors = {
-  OPEN: "bg-green-500",
-  COMPLETED: "bg-blue-500",
-  CANCELLED: "bg-gray-500",
-};
 
 const statusLabels = {
   OPEN: "Đang mở",
@@ -559,7 +550,7 @@ export function SharedCartDetail() {
                       const joinedUserIds = new Set(currentCart.participants.map(p => p.userId));
                       
                       return Array.from(pending.entries())
-                        .filter(([identifier, userId]) => {
+                        .filter(([_, userId]) => {
                           // Nếu có userId và userId đã join thì không hiển thị
                           if (userId !== null && joinedUserIds.has(userId)) {
                             return false;

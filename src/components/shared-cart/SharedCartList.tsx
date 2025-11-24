@@ -9,7 +9,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { useSharedCartStore } from "@/store/use-shared-cart.store";
 import { CreateSharedCartDialog } from "./CreateSharedCartDialog";
 import { getSharedOrderHistory, getOrderDetail } from "@/service/order/service";
-import { Plus, ShoppingCart, Users, Calendar, Clock, Sparkles, TrendingUp, Package, ArrowRight, Filter, SortAsc, SortDesc, Grid3x3, List } from "lucide-react";
+import { Plus, ShoppingCart, Users, Calendar, Clock, Sparkles, TrendingUp, Package, ArrowRight, Filter, SortAsc, Grid3x3, List } from "lucide-react";
 import { formatMoney } from "@/utils/helper";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -22,12 +22,6 @@ const formatDate = (dateString: string) => {
     month: "2-digit",
     year: "numeric",
   });
-};
-
-const statusColors = {
-  OPEN: "bg-green-500",
-  COMPLETED: "bg-blue-500",
-  CANCELLED: "bg-gray-500",
 };
 
 const statusLabels = {

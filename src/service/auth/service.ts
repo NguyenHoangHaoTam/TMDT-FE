@@ -8,11 +8,6 @@ import type { ApiResponse } from "@/types/response-api.type";
 import { publicApi, api } from "../config-api";
 import ApiEndPoint from "../api";
 import toast from "react-hot-toast";
-import { useAuthStore } from "@/store/use-auth.store";
-
-
-
-
 // Hàm xóa cookie cũ (nếu có)
 function clearCookie(name: string) {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;

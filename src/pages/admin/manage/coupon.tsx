@@ -13,13 +13,13 @@ import type {
   CouponStatusFilter,
 } from "@/types/coupon.type";
 
-type StatusFilter = "ALL" | CouponStatusFilter;
+type StatusFilter = "ALL" | "USED_UP" | CouponStatusFilter;
 
 const statusFilters: { label: string; value: StatusFilter }[] = [
   { label: "Tất cả", value: "ALL" },
   { label: "Đang chạy", value: "ACTIVE" },
   { label: "Sắp diễn ra", value: "UPCOMING" },
-  { label: "Hết lượt", value: "USED_UP" as StatusFilter },
+  { label: "Hết lượt", value: "USED_UP" },
   { label: "Hết hạn", value: "EXPIRED" },
 ];
 

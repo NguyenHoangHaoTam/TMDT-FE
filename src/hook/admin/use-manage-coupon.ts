@@ -5,17 +5,17 @@ import {
   fetchAdminCoupons,
   updateCoupon as updateCouponRequest,
 } from "@/service/admin/coupon/service";
-import type { CouponFormValues, CouponListParams } from "@/types/coupon.type";
+import type { CouponFormValues, CouponListParams, CouponPageResponse } from "@/types/coupon.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
 export function useManageCoupons(filters: CouponListParams) {
   const queryClient = useQueryClient();
 
-  const couponsQuery = useQuery({
+  const couponsQuery = useQuery<CouponPageResponse>({
     queryKey: [CouponManageKeys.LIST, filters],
     queryFn: () => fetchAdminCoupons(filters),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
   });
 

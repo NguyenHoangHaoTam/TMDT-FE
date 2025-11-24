@@ -69,7 +69,6 @@ api.interceptors.response.use(
       const isAdminRoute = currentPath.startsWith("/admin") && currentPath !== "/admin/login";
       
       const adminToken = useAdminAuthStore.getState().token;
-      const userToken = useAuthStore.getState().token;
       const isAdmin = isAdminRoute && !!adminToken;
 
       try {

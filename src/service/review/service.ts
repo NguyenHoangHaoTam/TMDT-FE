@@ -2,7 +2,6 @@ import type { ApiResponse } from "@/types/response-api.type";
 import ReviewEndPoint from "./endpoint";
 import { api } from "../config-api";
 import type {
-  Review,
   ReviewCreateRequest,
   ReviewCreateResponse,
   ProductReviewListResponse,

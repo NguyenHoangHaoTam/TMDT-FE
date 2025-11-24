@@ -402,20 +402,12 @@ export const useSharedCartStore = create<SharedCartState>((set, get) => ({
 
   async invite(payload) {
     try {
-      const response = await inviteToSharedCart(payload);
+      await inviteToSharedCart(payload);
       
       // Lưu danh sách identifiers đã mời vào pending invitations
       // Map identifier -> userId từ response nếu có
       const cartId = payload.sharedCartId;
       const currentPending = get().pendingInvitations.get(cartId) || new Map<string, number | null>();
-      
-      // Tạo map từ response: identifier -> userId
-      const responseMap = new Map<string, number>();
-      if (response && response.length > 0) {
-        // Response có thể chứa userId của những user đã được mời
-        // Tuy nhiên, response chỉ có userId khi user đã join, nên ta sẽ map sau khi fetch detail
-        // Ở đây ta chỉ lưu identifier với userId = null
-      }
       
       // Lưu tất cả identifiers với userId = null (sẽ được map khi fetch detail)
       payload.identifiers.forEach((identifier) => {
