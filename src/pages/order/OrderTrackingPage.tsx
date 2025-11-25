@@ -226,7 +226,12 @@ export default function OrderTrackingPage() {
   // Tính toán stats
   const stats = useMemo(() => {
     const totalOrders = allOrders.length;
-    const totalAmount = allOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const totalAmount = allOrders.reduce((sum, order) => {
+      if (order.status === "CANCELLED") {
+        return sum;
+      }
+      return sum + order.totalAmount;
+    }, 0);
     const pendingOrders = allOrders.filter((o) => o.status === "PENDING" || o.status === "PAID").length;
     const shippingOrders = allOrders.filter((o) => o.status === "SHIPPED").length;
     const completedOrders = allOrders.filter((o) => o.status === "COMPLETED").length;
