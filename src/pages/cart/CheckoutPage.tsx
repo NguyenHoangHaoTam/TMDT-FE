@@ -242,9 +242,8 @@ const CheckoutPage = () => {
       <div className="container mx-auto px-4 mt-10 space-y-6">
         <CheckoutProgress currentStep="checkout" />
 
-        <div className="grid lg:grid-cols-[2fr_1fr] gap-8">
-          <div className="space-y-6">
-            <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
+        <div className="space-y-8">
+          <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs uppercase font-semibold text-emerald-600 tracking-wide">
@@ -284,7 +283,10 @@ const CheckoutPage = () => {
                   !addressError &&
                   sortedAddresses.length > 0 && (
                     <div className="space-y-4">
-                      <div className="flex gap-4 overflow-x-auto pb-2" role="listbox">
+                      <div
+                        className="max-h-64 overflow-y-auto space-y-3 pr-1"
+                        role="listbox"
+                      >
                         {sortedAddresses.map((addr) => {
                           const addrId = getAddressId(addr);
                           const isActive = addrId === selectedAddressId;
@@ -293,14 +295,16 @@ const CheckoutPage = () => {
                               type="button"
                               key={addrId ?? addr.phone ?? addr.recipientName}
                               onClick={() => setSelectedAddressId(addrId)}
-                              className={`min-w-[220px] rounded-2xl border p-4 text-left transition-all ${
+                              className={`w-full rounded-2xl border p-4 text-left transition-all ${
                                 isActive
                                   ? "border-emerald-500 bg-white shadow"
                                   : "border-dashed border-gray-200 bg-gray-50"
                               }`}
                             >
                               <div className="flex items-center justify-between gap-2 text-sm font-semibold text-gray-900">
-                                <span>{addr.recipientName || addr.fullName || "Người nhận"}</span>
+                                <span>
+                                  {addr.recipientName || addr.fullName || "Người nhận"}
+                                </span>
                                 {addr.isDefault && (
                                   <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
                                     Mặc định
@@ -380,252 +384,248 @@ const CheckoutPage = () => {
                   </div>
                 )}
               </div>
-            </section>
+          </section>
 
-            <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase font-semibold text-emerald-600 tracking-wide">
-                    Bước 2
-                  </p>
-                  <h2 className="text-2xl font-semibold text-gray-900 mt-1">
-                    Sản phẩm
-                  </h2>
-                </div>
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="text-sm text-orange-600"
-                >
-                  <Link to="/cart">Quay lại giỏ hàng</Link>
-                </Button>
-              </div>
-
-              {!hasItems && (
-                <div className="text-center rounded-2xl border border-dashed border-gray-200 bg-gray-50/70 p-8">
-                  <p className="text-gray-700 font-medium">
-                    Giỏ hàng của bạn đang trống.
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Hãy thêm sản phẩm để tiếp tục thanh toán.
-                  </p>
-                  <Button
-                    asChild
-                    className="mt-4 rounded-full bg-orange-500 hover:bg-orange-600"
-                  >
-                    <Link to="/">Tiếp tục mua sắm</Link>
-                  </Button>
-                </div>
-              )}
-
-              {hasItems && (
-                <div className="space-y-4">
-                  <ul className="divide-y rounded-2xl border border-gray-100">
-                    {displayItems.map((item) => (
-                      <li
-                        key={item.productId}
-                        className="p-4 flex flex-col gap-4 sm:flex-row sm:items-center"
-                      >
-                        <div className="flex flex-1 items-center gap-4">
-                          <img
-                            src={
-                              item.productImageUrl ||
-                              "/assets/img/img-placeholder.png"
-                            }
-                            alt={item.productName}
-                            className="h-20 w-20 rounded-xl object-cover bg-gray-100"
-                          />
-                          <div className="space-y-1">
-                            <p className="font-semibold text-gray-900">
-                              {item.productName}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              Số lượng: {item.quantity}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-500">Tạm tính</p>
-                          <p className="text-lg font-semibold text-green-600">
-                            {formatCurrency(item.subtotal)}
-                          </p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </section>
-          </div>
-
-          <aside className="space-y-6">
-            <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
+          <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-5">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase font-semibold text-emerald-600 tracking-wide">
-                  Bước 3
+                  Bước 2
                 </p>
                 <h2 className="text-2xl font-semibold text-gray-900 mt-1">
-                  Hình thức thanh toán
+                  Sản phẩm
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  VNPay đã sẵn sàng. Các phương thức khác sẽ được bổ sung sau
-                  khi hoàn tất cấu hình.
+              </div>
+            <Button
+              asChild
+              variant="ghost"
+              className="text-sm text-orange-600"
+            >
+              <Link to="/cart">Quay lại giỏ hàng</Link>
+            </Button>
+
+            {!hasItems && (
+              <div className="text-center rounded-2xl border border-dashed border-gray-200 bg-gray-50/70 p-8">
+                <p className="text-gray-700 font-medium">
+                  Giỏ hàng của bạn đang trống.
                 </p>
-              </div>
-
-              <div className="space-y-3">
-                {paymentOptions.map((method) => {
-                  const isActive = selectedPaymentMethod === method.id;
-                  return (
-                    <label
-                      key={method.id}
-                      className={`flex items-start gap-3 rounded-2xl border bg-gray-50/60 p-4 ${
-                        isActive
-                          ? "border-emerald-400 bg-emerald-50/60"
-                          : "border-dashed border-gray-200"
-                      } ${
-                        method.disabled
-                          ? "opacity-60 cursor-not-allowed"
-                          : "cursor-pointer"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        className="mt-1 h-4 w-4 text-orange-500"
-                        checked={isActive}
-                        onChange={() => setSelectedPaymentMethod(method.id)}
-                        disabled={method.disabled}
-                      />
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-gray-900">
-                            {method.label}
-                          </p>
-                          {method.id === "vnpay" && (
-                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
-                              Khuyên dùng
-                            </span>
-                          )}
-                          {method.disabled && method.helper && (
-                            <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
-                              {method.helper}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500">{method.desc}</p>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-
-              {selectedPaymentMethod === "vnpay" && (
-                <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-4 text-sm text-emerald-700">
-                  Chúng tôi sẽ chuyển hướng bạn tới trang VNPay để hoàn tất
-                  thanh toán. Vui lòng không đóng trình duyệt trong quá trình
-                  này.
-                </div>
-              )}
-
-              {selectedPaymentMethod === "cod" && (
-                <div className="rounded-2xl bg-blue-50 border border-blue-100 p-4 text-sm text-blue-700">
-                  Bạn sẽ thanh toán trực tiếp cho shipper khi nhận hàng. Vui
-                  lòng chuẩn bị đúng số tiền.
-                </div>
-              )}
-
-              <div className="pt-4 border-t space-y-5">
-                <div>
-                  <h2 className="text-lg font-semibold text-emerald-600 uppercase mb-3">
-                    Mã giảm giá
-                  </h2>
-                  <CouponInput
-                    orderTotal={subtotal}
-                    onCouponApplied={(coupon, discount) => {
-                      setAppliedCoupon(coupon);
-                      setDiscountAmount(discount);
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <h2 className="text-lg font-semibold text-emerald-600 uppercase mb-3">
-                    Tổng cộng giỏ hàng
-                  </h2>
-
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-700">Tạm tính</span>
-                      <span className="font-semibold text-gray-900">
-                        {formatCurrency(subtotal)}
-                      </span>
-                    </div>
-
-                    {discountAmount > 0 && (
-                      <div className="flex justify-between text-sm text-green-600">
-                        <span>Giảm giá</span>
-                        <span className="font-semibold">
-                          -{formatCurrency(discountAmount)}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex justify-between text-sm pt-2 border-t">
-                      <span className="text-gray-700">Phí Giao Hàng</span>
-                      <span className="font-semibold text-gray-900">0₫</span>
-                    </div>
-
-                    <div className="flex justify-between text-base font-semibold pt-2 border-t">
-                      <span className="text-gray-900">Tổng</span>
-                      <span className="text-emerald-600">
-                        {formatCurrency(finalTotal)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
+                <p className="text-sm text-gray-500 mt-1">
+                  Hãy thêm sản phẩm để tiếp tục thanh toán.
+                </p>
                 <Button
-                  className="w-full rounded-full bg-orange-500 hover:bg-orange-600 text-white font-semibold"
-                  disabled={!canCheckout || isSubmittingOrder}
-                  onClick={
-                    selectedPaymentMethod === "cod"
-                      ? handleCODCheckout
-                      : handleVNPayCheckout
-                  }
+                  asChild
+                  className="mt-4 rounded-full bg-orange-500 hover:bg-orange-600"
                 >
-                  {isSubmittingOrder ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {selectedPaymentMethod === "cod"
-                        ? "Đang tạo đơn hàng..."
-                        : "Đang chuyển đến VNPay..."}
-                    </>
-                  ) : (
-                    "TIẾN HÀNH THANH TOÁN"
-                  )}
+                  <Link to="/">Tiếp tục mua sắm</Link>
                 </Button>
-                {checkoutError && (
-                  <p className="text-sm text-red-600 text-center">
-                    {checkoutError}
-                  </p>
-                )}
               </div>
-            </section>
+            )}
 
-            <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-3">
-              <p className="text-sm font-semibold text-gray-900">
-                Tiến độ hoàn tất
+            {hasItems && (
+              <div className="space-y-4">
+                <ul className="divide-y rounded-2xl border border-gray-100">
+                  {displayItems.map((item) => (
+                    <li
+                      key={item.productId}
+                      className="p-4 flex flex-col gap-4 sm:flex-row sm:items-center"
+                    >
+                      <div className="flex flex-1 items-center gap-4">
+                        <img
+                          src={
+                            item.productImageUrl ||
+                            "/assets/img/img-placeholder.png"
+                          }
+                          alt={item.productName}
+                          className="h-20 w-20 rounded-xl object-cover bg-gray-100"
+                        />
+                        <div className="space-y-1">
+                          <p className="font-semibold text-gray-900">
+                            {item.productName}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Số lượng: {item.quantity}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500">Tạm tính</p>
+                        <p className="text-lg font-semibold text-green-600">
+                          {formatCurrency(item.subtotal)}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+
+          <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
+            <div>
+              <p className="text-xs uppercase font-semibold text-emerald-600 tracking-wide">
+                Bước 3
               </p>
-              <Progress
-                value={selectedAddress ? 66 : 33}
-                className="h-2 bg-gray-100"
-              />
-              <p className="text-xs text-gray-500">
-                Hoàn thành thông tin nhận hàng và chọn hình thức thanh toán để
-                đặt hàng.
+              <h2 className="text-2xl font-semibold text-gray-900 mt-1">
+                Hình thức thanh toán
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                VNPay đã sẵn sàng. Các phương thức khác sẽ được bổ sung sau khi
+                hoàn tất cấu hình.
               </p>
             </div>
-          </aside>
+
+            <div className="space-y-3">
+              {paymentOptions.map((method) => {
+                const isActive = selectedPaymentMethod === method.id;
+                return (
+                  <label
+                    key={method.id}
+                    className={`flex items-start gap-3 rounded-2xl border bg-gray-50/60 p-4 ${
+                      isActive
+                        ? "border-emerald-400 bg-emerald-50/60"
+                        : "border-dashed border-gray-200"
+                    } ${
+                      method.disabled
+                        ? "opacity-60 cursor-not-allowed"
+                        : "cursor-pointer"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      className="mt-1 h-4 w-4 text-orange-500"
+                      checked={isActive}
+                      onChange={() => setSelectedPaymentMethod(method.id)}
+                      disabled={method.disabled}
+                    />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-gray-900">
+                          {method.label}
+                        </p>
+                        {method.id === "vnpay" && (
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
+                            Khuyên dùng
+                          </span>
+                        )}
+                        {method.disabled && method.helper && (
+                          <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
+                            {method.helper}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500">{method.desc}</p>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+
+            {selectedPaymentMethod === "vnpay" && (
+              <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-4 text-sm text-emerald-700">
+                Chúng tôi sẽ chuyển hướng bạn tới trang VNPay để hoàn tất thanh
+                toán. Vui lòng không đóng trình duyệt trong quá trình này.
+              </div>
+            )}
+
+            {selectedPaymentMethod === "cod" && (
+              <div className="rounded-2xl bg-blue-50 border border-blue-100 p-4 text-sm text-blue-700">
+                Bạn sẽ thanh toán trực tiếp cho shipper khi nhận hàng. Vui lòng
+                chuẩn bị đúng số tiền.
+              </div>
+            )}
+
+            <div className="pt-4 border-t space-y-5">
+              <div>
+                <h2 className="text-lg font-semibold text-emerald-600 uppercase mb-3">
+                  Mã giảm giá
+                </h2>
+                <CouponInput
+                  orderTotal={subtotal}
+                  onCouponApplied={(coupon, discount) => {
+                    setAppliedCoupon(coupon);
+                    setDiscountAmount(discount);
+                  }}
+                />
+              </div>
+
+              <div>
+                <h2 className="text-lg font-semibold text-emerald-600 uppercase mb-3">
+                  Tổng cộng giỏ hàng
+                </h2>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-700">Tạm tính</span>
+                    <span className="font-semibold text-gray-900">
+                      {formatCurrency(subtotal)}
+                    </span>
+                  </div>
+
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Giảm giá</span>
+                      <span className="font-semibold">
+                        -{formatCurrency(discountAmount)}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-sm pt-2 border-t">
+                    <span className="text-gray-700">Phí Giao Hàng</span>
+                    <span className="font-semibold text-gray-900">0₫</span>
+                  </div>
+
+                  <div className="flex justify-between text-base font-semibold pt-2 border-t">
+                    <span className="text-gray-900">Tổng</span>
+                    <span className="text-emerald-600">
+                      {formatCurrency(finalTotal)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                className="w-full rounded-full bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+                disabled={!canCheckout || isSubmittingOrder}
+                onClick={
+                  selectedPaymentMethod === "cod"
+                    ? handleCODCheckout
+                    : handleVNPayCheckout
+                }
+              >
+                {isSubmittingOrder ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {selectedPaymentMethod === "cod"
+                      ? "Đang tạo đơn hàng..."
+                      : "Đang chuyển đến VNPay..."}
+                  </>
+                ) : (
+                  "TIẾN HÀNH THANH TOÁN"
+                )}
+              </Button>
+              {checkoutError && (
+                <p className="text-sm text-red-600 text-center">
+                  {checkoutError}
+                </p>
+              )}
+            </div>
+          </section>
+
+          <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-3">
+            <p className="text-sm font-semibold text-gray-900">
+              Tiến độ hoàn tất
+            </p>
+            <Progress
+              value={selectedAddress ? 66 : 33}
+              className="h-2 bg-gray-100"
+            />
+            <p className="text-xs text-gray-500">
+              Hoàn thành thông tin nhận hàng và chọn hình thức thanh toán để đặt
+              hàng.
+            </p>
+          </div>
+        </div>
         </div>
       </div>
     </div>
