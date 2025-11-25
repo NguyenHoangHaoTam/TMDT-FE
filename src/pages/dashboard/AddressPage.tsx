@@ -197,12 +197,14 @@ export default function AddressPage() {
         const data = await res.json();
         if (!mounted) return;
         const normalized: ProvinceOption[] = Array.isArray(data)
-          ? data
-              .map((item: any) => ({
-                code: item.code,
-                name: item.name,
-              }))
-              .sort((a, b) => a.name.localeCompare(b.name, "vi", { sensitivity: "base" }))
+        ? data
+            .map((item: any) => ({
+              code: item.code,
+              name: item.name,
+            }))
+            .sort((a: ProvinceOption, b: ProvinceOption) =>
+              a.name.localeCompare(b.name, "vi", { sensitivity: "base" })
+            )
           : [];
         setProvinceOptions(normalized);
       } catch (error) {
@@ -240,7 +242,9 @@ export default function AddressPage() {
               code: item.code,
               name: item.name,
             }))
-            .sort((a, b) => a.name.localeCompare(b.name, "vi", { sensitivity: "base" }))
+            .sort((a: WardOption, b: WardOption) =>
+              a.name.localeCompare(b.name, "vi", { sensitivity: "base" })
+            )
         : [];
       setWardOptions(normalized);
       if (prefillWard) {
@@ -293,7 +297,9 @@ export default function AddressPage() {
               name: item.name,
               divisionType: item.division_type,
             }))
-            .sort((a, b) => a.name.localeCompare(b.name, "vi", { sensitivity: "base" }))
+            .sort((a: DistrictOption, b: DistrictOption) =>
+              a.name.localeCompare(b.name, "vi", { sensitivity: "base" })
+            )
         : [];
       setDistrictOptions(normalized);
       if (opts?.preselectDistrict) {
