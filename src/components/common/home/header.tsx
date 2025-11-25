@@ -42,7 +42,7 @@ export function CarouselPlugin({ className }: { readonly className?: string }) {
     <Carousel
       plugins={[plugin.current]}
       opts={{ loop: true }}
-      className={cn("w-full border-none shadow-none h-full ", className)}
+      className={cn("w-full h-full", className)}
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
     >
@@ -54,22 +54,24 @@ export function CarouselPlugin({ className }: { readonly className?: string }) {
           >
             <div className="h-full border-none">
               <Card className="h-full border-none shadow-none py-0">
-                <CardContent className=" h-full w-full px-0 border-none  shadow-none relative">
+                <CardContent className="relative h-full w-full px-0 border-none shadow-none overflow-hidden rounded-2xl group">
                   <img
                     src={slide.image}
                     alt={slide.title}
-                    className="size-full rounded-lg object-cover"
+                    className="h-full w-full object-cover rounded-2xl transition-transform duration-700 ease-out group-hover:scale-105"
                   />
 
-                  <div className="absolute top-6 -translate-x-1/2  left-1/2 space-y-3">
-                    <div className="text-center text-white">
-                      <p className="text-2xl">{slide.title}</p>
-                      <p className="text-xl">{slide.subtitle}</p>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent rounded-2xl pointer-events-none" />
+
+                  <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center space-y-4">
+                    <div className="text-white space-y-2 drop-shadow-md transition-all duration-300 group-hover:-translate-y-0.5">
+                      <p className="text-3xl font-semibold">{slide.title}</p>
+                      <p className="text-lg">{slide.subtitle}</p>
                     </div>
 
                     <div className="flex justify-center items-center">
                       <button
-                        className="bg-green-primary px-5 py-2 mx-auto text-lg cursor-pointer text-white rounded-md"
+                        className="bg-green-primary px-6 py-2.5 text-base font-medium mx-auto text-white rounded-md transition-all duration-300 hover:bg-green-primary/90 hover:-translate-y-0.5"
                         onClick={() =>
                           navigate(`/products?category=${slide.category}`)
                         }
