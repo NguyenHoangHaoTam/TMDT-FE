@@ -4,6 +4,13 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuthStore } from "@/store/use-auth.store";
 import {
   addAddress,
@@ -19,9 +26,42 @@ type AddressForm = {
   phone: string;
   addressLine: string;
   ward?: string;
+  wardCode?: number | null;
   district?: string;
+  districtCode?: number | null;
   city?: string;
+  cityCode?: number | null;
   province?: string;
+  provinceCode?: number | null;
+};
+
+type ProvinceOption = {
+  code: number;
+  name: string;
+};
+
+type DistrictOption = {
+  code: number;
+  name: string;
+  divisionType?: string;
+};
+
+type WardOption = {
+  code: number;
+  name: string;
+};
+
+type LocationPrefill = {
+  province?: string;
+  district?: string;
+  ward?: string;
+  city?: string;
+};
+
+type PrefillOptions = {
+  preselectDistrict?: string;
+  preselectWard?: string;
+  preselectCity?: string;
 };
 
 export default function AddressPage() {
@@ -38,10 +78,24 @@ export default function AddressPage() {
     phone: "",
     addressLine: "",
     ward: "",
+    wardCode: null,
     district: "",
+    districtCode: null,
     city: "",
+    cityCode: null,
     province: "",
+    provinceCode: null,
   });
+  const [provinceOptions, setProvinceOptions] = useState<ProvinceOption[]>([]);
+  const [districtOptions, setDistrictOptions] = useState<DistrictOption[]>([]);
+  const [wardOptions, setWardOptions] = useState<WardOption[]>([]);
+  const [loadingProvinceOptions, setLoadingProvinceOptions] =
+    useState<boolean>(false);
+  const [loadingDistrictOptions, setLoadingDistrictOptions] =
+    useState<boolean>(false);
+  const [loadingWardOptions, setLoadingWardOptions] = useState<boolean>(false);
+  const [pendingLocationPrefill, setPendingLocationPrefill] =
+    useState<LocationPrefill | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectParam = searchParams.get("redirect");
@@ -57,6 +111,18 @@ export default function AddressPage() {
       ""
     );
   }, [profile]);
+
+  const cityOptions = useMemo(() => {
+    if (!districtOptions.length) return [];
+    const filtered = districtOptions.filter((d) => {
+      const type = d.divisionType?.toLowerCase() ?? "";
+      return type.includes("thành phố") || type.includes("thị xã");
+    });
+    return (filtered.length ? filtered : districtOptions).map((d) => ({
+      code: d.code,
+      name: d.name,
+    }));
+  }, [districtOptions]);
 
   useEffect(() => {
     let mounted = true;
@@ -110,6 +176,242 @@ export default function AddressPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const normalizeText = (value?: string) =>
+    value
+      ? value
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim()
+      : "";
+
+  const isSameName = (a?: string, b?: string) => normalizeText(a) === normalizeText(b);
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchProvinces() {
+      setLoadingProvinceOptions(true);
+      try {
+        const res = await fetch("https://provinces.open-api.vn/api/?depth=1");
+        if (!res.ok) throw new Error("Failed to fetch provinces");
+        const data = await res.json();
+        if (!mounted) return;
+        const normalized: ProvinceOption[] = Array.isArray(data)
+          ? data
+              .map((item: any) => ({
+                code: item.code,
+                name: item.name,
+              }))
+              .sort((a, b) => a.name.localeCompare(b.name, "vi", { sensitivity: "base" }))
+          : [];
+        setProvinceOptions(normalized);
+      } catch (error) {
+        console.error("fetchProvinces error:", error);
+        if (mounted) toast.error("Không tải được danh sách tỉnh/thành");
+      } finally {
+        if (mounted) setLoadingProvinceOptions(false);
+      }
+    }
+    fetchProvinces();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const loadWards = async (
+    districtCode?: number | null,
+    prefillWard?: string
+  ): Promise<void> => {
+    if (!districtCode) {
+      setWardOptions([]);
+      setForm((prev) => ({ ...prev, ward: "", wardCode: null }));
+      return;
+    }
+    setLoadingWardOptions(true);
+    try {
+      const res = await fetch(
+        `https://provinces.open-api.vn/api/d/${districtCode}?depth=2`
+      );
+      if (!res.ok) throw new Error("Failed to fetch wards");
+      const data = await res.json();
+      const normalized: WardOption[] = Array.isArray(data?.wards)
+        ? data.wards
+            .map((item: any) => ({
+              code: item.code,
+              name: item.name,
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name, "vi", { sensitivity: "base" }))
+        : [];
+      setWardOptions(normalized);
+      if (prefillWard) {
+        const matched = normalized.find((item) => isSameName(item.name, prefillWard));
+        setForm((prev) => ({
+          ...prev,
+          ward: matched?.name ?? "",
+          wardCode: matched?.code ?? null,
+        }));
+      } else {
+        setForm((prev) => ({ ...prev, ward: "", wardCode: null }));
+      }
+    } catch (error) {
+      console.error("loadWards error:", error);
+      toast.error("Không tải được danh sách phường/xã");
+    } finally {
+      setLoadingWardOptions(false);
+    }
+  };
+
+  const loadDistricts = async (
+    provinceCode?: number | null,
+    opts?: PrefillOptions
+  ): Promise<void> => {
+    if (!provinceCode) {
+      setDistrictOptions([]);
+      setWardOptions([]);
+      setForm((prev) => ({
+        ...prev,
+        district: "",
+        districtCode: null,
+        ward: "",
+        wardCode: null,
+        city: "",
+        cityCode: null,
+      }));
+      return;
+    }
+    setLoadingDistrictOptions(true);
+    try {
+      const res = await fetch(
+        `https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`
+      );
+      if (!res.ok) throw new Error("Failed to fetch districts");
+      const data = await res.json();
+      const normalized: DistrictOption[] = Array.isArray(data?.districts)
+        ? data.districts
+            .map((item: any) => ({
+              code: item.code,
+              name: item.name,
+              divisionType: item.division_type,
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name, "vi", { sensitivity: "base" }))
+        : [];
+      setDistrictOptions(normalized);
+      if (opts?.preselectDistrict) {
+        const districtMatch = normalized.find((item) =>
+          isSameName(item.name, opts.preselectDistrict)
+        );
+        if (districtMatch) {
+          setForm((prev) => ({
+            ...prev,
+            district: districtMatch.name,
+            districtCode: districtMatch.code,
+          }));
+          await loadWards(districtMatch.code, opts.preselectWard);
+        } else {
+          setForm((prev) => ({
+            ...prev,
+            district: "",
+            districtCode: null,
+          }));
+          await loadWards(null);
+        }
+      } else {
+        setForm((prev) => ({
+          ...prev,
+          district: "",
+          districtCode: null,
+        }));
+        await loadWards(null);
+      }
+      if (opts?.preselectCity) {
+        const cityMatch = normalized.find((item) =>
+          isSameName(item.name, opts.preselectCity)
+        );
+        if (cityMatch) {
+          setForm((prev) => ({
+            ...prev,
+            city: cityMatch.name,
+            cityCode: cityMatch.code,
+          }));
+        } else {
+          setForm((prev) => ({
+            ...prev,
+            city: "",
+            cityCode: null,
+          }));
+        }
+      } else {
+        setForm((prev) => ({
+          ...prev,
+          city: "",
+          cityCode: null,
+        }));
+      }
+    } catch (error) {
+      console.error("loadDistricts error:", error);
+      toast.error("Không tải được danh sách quận/huyện");
+    } finally {
+      setLoadingDistrictOptions(false);
+    }
+  };
+
+  const handleProvinceSelect = async (
+    value: string,
+    opts?: PrefillOptions
+  ): Promise<void> => {
+    const province = provinceOptions.find((item) => String(item.code) === value);
+    setForm((prev) => ({
+      ...prev,
+      province: province?.name ?? "",
+      provinceCode: province?.code ?? null,
+    }));
+    await loadDistricts(province?.code ?? null, opts);
+  };
+
+  const handleDistrictSelect = async (value: string): Promise<void> => {
+    const district = districtOptions.find((item) => String(item.code) === value);
+    setForm((prev) => ({
+      ...prev,
+      district: district?.name ?? "",
+      districtCode: district?.code ?? null,
+    }));
+    await loadWards(district?.code ?? null);
+  };
+
+  const handleWardSelect = (value: string) => {
+    const ward = wardOptions.find((item) => String(item.code) === value);
+    setForm((prev) => ({
+      ...prev,
+      ward: ward?.name ?? "",
+      wardCode: ward?.code ?? null,
+    }));
+  };
+
+  const handleCitySelect = (value: string) => {
+    const city = cityOptions.find((item) => String(item.code) === value);
+    setForm((prev) => ({
+      ...prev,
+      city: city?.name ?? "",
+      cityCode: city?.code ?? null,
+    }));
+  };
+
+  useEffect(() => {
+    if (!pendingLocationPrefill || !provinceOptions.length) return;
+    const provinceMatch = provinceOptions.find((item) =>
+      isSameName(item.name, pendingLocationPrefill.province)
+    );
+    if (!provinceMatch) {
+      setPendingLocationPrefill(null);
+      return;
+    }
+    handleProvinceSelect(String(provinceMatch.code), {
+      preselectDistrict: pendingLocationPrefill.district,
+      preselectWard: pendingLocationPrefill.ward,
+      preselectCity: pendingLocationPrefill.city,
+    }).finally(() => setPendingLocationPrefill(null));
+  }, [pendingLocationPrefill, provinceOptions]);
+
   const refreshAddresses = async () => {
     const list = await getAddresses();
     const arr = Array.isArray(list) ? list : [];
@@ -128,10 +430,17 @@ export default function AddressPage() {
       phone: displayPhone || "",
       addressLine: "",
       ward: "",
+      wardCode: null,
       district: "",
+      districtCode: null,
       city: "",
+      cityCode: null,
       province: "",
+      provinceCode: null,
     });
+    setDistrictOptions([]);
+    setWardOptions([]);
+    setPendingLocationPrefill(null);
     setEditingId(null);
   };
 
@@ -147,9 +456,19 @@ export default function AddressPage() {
         addr.phone || addr.phoneNumber || addr.mobile || displayPhone || "",
       addressLine: addr.detail || addr.addressLine || addr.fullAddress || "",
       ward: addr.ward || "",
+      wardCode: null,
       district: addr.district || "",
+      districtCode: null,
       city: addr.city || "",
+      cityCode: null,
       province: addr.province || "",
+      provinceCode: null,
+    });
+    setPendingLocationPrefill({
+      province: addr.province || addr.city || "",
+      district: addr.district || "",
+      ward: addr.ward || "",
+      city: addr.city || "",
     });
     setEditingId(addr.id);
     setShowForm(true);
@@ -312,35 +631,111 @@ export default function AddressPage() {
               </div>
               <div>
                 <div className="mb-1 text-sm text-gray-700">Phường/Xã</div>
-                <Input
-                  value={form.ward || ""}
-                  onChange={(e) => handleChange("ward", e.target.value)}
-                  placeholder="Phường/Xã"
-                />
+                <Select
+                  value={form.wardCode ? String(form.wardCode) : undefined}
+                  onValueChange={handleWardSelect}
+                  disabled={!wardOptions.length || loadingWardOptions}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={
+                        loadingWardOptions
+                          ? "Đang tải phường/xã..."
+                          : wardOptions.length
+                            ? "Chọn phường/xã"
+                            : "Chọn quận/huyện trước"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wardOptions.map((option) => (
+                      <SelectItem key={option.code} value={String(option.code)}>
+                        {option.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <div className="mb-1 text-sm text-gray-700">Quận/Huyện</div>
-                <Input
-                  value={form.district || ""}
-                  onChange={(e) => handleChange("district", e.target.value)}
-                  placeholder="Quận/Huyện"
-                />
+                <Select
+                  value={form.districtCode ? String(form.districtCode) : undefined}
+                  onValueChange={(value) => {
+                    void handleDistrictSelect(value);
+                  }}
+                  disabled={!districtOptions.length || loadingDistrictOptions}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={
+                        loadingDistrictOptions
+                          ? "Đang tải quận/huyện..."
+                          : districtOptions.length
+                            ? "Chọn quận/huyện"
+                            : "Chọn tỉnh trước"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {districtOptions.map((option) => (
+                      <SelectItem key={option.code} value={String(option.code)}>
+                        {option.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <div className="mb-1 text-sm text-gray-700">Thành phố</div>
-                <Input
-                  value={form.city || ""}
-                  onChange={(e) => handleChange("city", e.target.value)}
-                  placeholder="Thành phố"
-                />
+                <Select
+                  value={form.cityCode ? String(form.cityCode) : undefined}
+                  onValueChange={handleCitySelect}
+                  disabled={!cityOptions.length}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={
+                        cityOptions.length
+                          ? "Chọn thành phố trực thuộc"
+                          : "Chọn tỉnh trước"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cityOptions.map((option) => (
+                      <SelectItem key={option.code} value={String(option.code)}>
+                        {option.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <div className="mb-1 text-sm text-gray-700">Tỉnh</div>
-                <Input
-                  value={form.province || ""}
-                  onChange={(e) => handleChange("province", e.target.value)}
-                  placeholder="Tỉnh"
-                />
+                <Select
+                  value={form.provinceCode ? String(form.provinceCode) : undefined}
+                  onValueChange={(value) => {
+                    void handleProvinceSelect(value);
+                  }}
+                  disabled={loadingProvinceOptions || !provinceOptions.length}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={
+                        loadingProvinceOptions
+                          ? "Đang tải tỉnh/thành..."
+                          : "Chọn tỉnh/thành"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {provinceOptions.map((option) => (
+                      <SelectItem key={option.code} value={String(option.code)}>
+                        {option.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="border-t border-gray-100 px-6 py-4 flex items-center gap-3">
