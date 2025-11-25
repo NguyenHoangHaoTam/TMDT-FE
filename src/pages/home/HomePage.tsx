@@ -291,30 +291,33 @@ export default function HomePage() {
 
   return (
     <div className=" min-h-screen mx-auto">
-      <div className="flex px-10 gap-4 w-full py-4   ">
-        <div className="w-1/2">
-          <CarouselPlugin />
+      <div className="grid grid-cols-2 px-10 gap-4 w-full py-4 items-stretch">
+        <div className="h-full min-h-[460px]">
+          <CarouselPlugin className="h-full" />
         </div>
 
-        <div className="grid grid-cols-2 gap-4 w-1/2 ">
+        <div
+          className="grid grid-cols-2 gap-4 w-full h-full min-h-[460px]"
+          style={{ gridTemplateRows: "minmax(280px, 1fr) minmax(180px, 1fr)" }}
+        >
           {highlightCards.map((card) => (
             <div
               key={card.id}
-              className={`overflow-hidden rounded-lg relative ${card.span}`}
+              className={`relative h-full overflow-hidden rounded-2xl ${card.span}`}
             >
               <img
                 src={card.image}
                 alt={card.title}
-                className={`w-full object-cover rounded-lg hover:scale-110 transition-transform duration-500 ${
+                className={`h-full w-full object-cover rounded-2xl hover:scale-105 transition-transform duration-500 ${
                   card.span ? "object-right" : ""
                 }`}
               />
               <div
-                className={`absolute top-6 space-y-3 ${
+                className={`absolute inset-0 px-6 py-6 space-y-3 flex flex-col ${
                   card.align === "center"
-                    ? "left-1/2 -translate-x-1/2 text-center"
-                    : "left-0 pl-4 text-left"
-                }`}
+                    ? "items-center text-center justify-center"
+                    : "items-start justify-between text-left"
+                } transition-all duration-300`}
               >
                 <div className="text-white">
                   <p
@@ -337,13 +340,17 @@ export default function HomePage() {
                   )}
                 </div>
 
-                <div className="flex justify-center items-center">
+                <div
+                  className={`flex items-center w-full ${
+                    card.align === "center" ? "justify-center" : "justify-start"
+                  }`}
+                >
                   <button
-                    className={`px-5 py-2 mx-auto text-lg cursor-pointer rounded-md transition-colors ${
+                    className={`px-5 py-2 text-lg cursor-pointer rounded-md transition-all duration-300 ${
                       card.buttonVariant === "light"
                         ? "bg-white/90 text-green-primary hover:bg-white"
                         : "bg-green-primary text-white hover:bg-green-primary/90"
-                    }`}
+                    } ${card.align === "center" ? "mx-auto" : "ml-0"}`}
                     onClick={() =>
                       handleNavigateHighlight(
                         card.categoryId,

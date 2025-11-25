@@ -1,5 +1,4 @@
 import * as React from "react";
-import Autoplay from "embla-carousel-autoplay";
 import { useNavigate } from "react-router-dom";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,13 +8,13 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  type CarouselApi,
 } from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
 
 export function CarouselPlugin({ className }: { readonly className?: string }) {
-  const plugin = React.useRef(
-    Autoplay({ delay: 5000, stopOnInteraction: false })
-  );
+  const [carouselApi, setCarouselApi] = React.useState<CarouselApi | null>(null);
+  const [isHovered, setIsHovered] = React.useState(false);
   const navigate = useNavigate();
 
   const slides = React.useMemo(
@@ -38,13 +37,40 @@ export function CarouselPlugin({ className }: { readonly className?: string }) {
     []
   );
 
+  React.useEffect(() => {
+    if (!carouselApi || isHovered) return;
+
+    const interval = setInterval(() => {
+      if (!carouselApi) return;
+      if (carouselApi.canScrollNext()) {
+        carouselApi.scrollNext();
+      } else {
+        carouselApi.scrollTo(0);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [carouselApi, isHovered]);
+
+  const handleMouseEnter = React.useCallback(() => {
+    setIsHovered(true);
+  }, []);
+
+  const handleMouseLeave = React.useCallback(() => {
+    setIsHovered(false);
+  }, []);
+
+  const handleSetApi = React.useCallback((api: CarouselApi) => {
+    setCarouselApi(api);
+  }, []);
+
   return (
     <Carousel
-      plugins={[plugin.current]}
+      setApi={handleSetApi}
       opts={{ loop: true }}
       className={cn("w-full h-full", className)}
-      onMouseEnter={plugin.current.stop}
-      onMouseLeave={plugin.current.reset}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <CarouselContent className="h-full p-0 border-none shadow-none">
         {slides.map((slide) => (
