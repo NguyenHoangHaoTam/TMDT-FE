@@ -396,13 +396,14 @@ const CheckoutPage = () => {
                   Sản phẩm
                 </h2>
               </div>
-            <Button
-              asChild
-              variant="ghost"
-              className="text-sm text-orange-600"
-            >
-              <Link to="/cart">Quay lại giỏ hàng</Link>
-            </Button>
+              <Button
+                asChild
+                variant="ghost"
+                className="text-sm text-orange-600"
+              >
+                <Link to="/cart">Quay lại giỏ hàng</Link>
+              </Button>
+            </div>
 
             {!hasItems && (
               <div className="text-center rounded-2xl border border-dashed border-gray-200 bg-gray-50/70 p-8">
@@ -625,7 +626,6 @@ const CheckoutPage = () => {
               hàng.
             </p>
           </div>
-        </div>
         </div>
       </div>
     </div>
