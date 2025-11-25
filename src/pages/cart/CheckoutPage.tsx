@@ -11,6 +11,7 @@ import { checkoutWithVNPay, checkoutWithCOD } from "@/service/order/service";
 import { CouponInput } from "@/components/common/coupon/coupon-input";
 import type { CouponDTO } from "@/types/coupon.type";
 import { useNotificationStore } from "@/store/use-notification.store";
+import { useCartItemsMeta } from "@/hooks/use-cart-items-meta";
 
 const formatCurrency = (value?: number) =>
   (value ?? 0).toLocaleString("vi-VN", { style: "currency", currency: "VND" });
@@ -29,6 +30,9 @@ const CheckoutPage = () => {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponDTO | null>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | number | null>(null);
+  const { enhancedItems, computedTotal } = useCartItemsMeta(cart?.items);
+  const displayItems = enhancedItems.length ? enhancedItems : cart?.items ?? [];
 
   useEffect(() => {
     fetchCart().catch(() => undefined);
@@ -58,13 +62,38 @@ const CheckoutPage = () => {
     };
   }, []);
 
-  const defaultAddress = useMemo(
-    () => addresses.find((addr) => addr.isDefault) ?? addresses[0] ?? null,
-    [addresses]
+  const getAddressId = (addr: any) => addr?.id ?? addr?.addressId ?? addr?._id ?? null;
+
+  useEffect(() => {
+    if (!addresses.length) {
+      setSelectedAddressId(null);
+      return;
+    }
+    const preferred =
+      addresses.find((addr) => addr.isDefault) ?? addresses[0] ?? null;
+    if (preferred) {
+      setSelectedAddressId((prev) => prev ?? getAddressId(preferred));
+    }
+  }, [addresses]);
+
+  const sortedAddresses = useMemo(() => {
+    return [...addresses].sort((a, b) => {
+      const aDefault = a?.isDefault ? 1 : 0;
+      const bDefault = b?.isDefault ? 1 : 0;
+      return bDefault - aDefault;
+    });
+  }, [addresses]);
+
+  const selectedAddress = useMemo(
+    () =>
+      sortedAddresses.find(
+        (addr) => getAddressId(addr) === selectedAddressId
+      ) ?? null,
+    [sortedAddresses, selectedAddressId]
   );
 
-  const hasItems = (cart?.items?.length ?? 0) > 0;
-  const subtotal = cart?.totalAmount ?? 0;
+  const hasItems = displayItems.length > 0;
+  const subtotal = computedTotal ?? cart?.totalAmount ?? 0;
   const finalTotal = Math.max(0, subtotal - discountAmount);
   // const totalQuantity = cart?.items?.reduce((acc, item) => acc + item.quantity, 0) ?? 0;
   const manageAddressLink = `/account/addresses?redirect=${encodeURIComponent(
@@ -90,17 +119,18 @@ const CheckoutPage = () => {
     },
   ];
 
-  const canCheckout = hasItems && !isLoading && defaultAddress;
+  const canCheckout = hasItems && !isLoading && selectedAddress;
   const canCheckoutWithVNPay = selectedPaymentMethod === "vnpay" && canCheckout;
   const canCheckoutWithCOD = selectedPaymentMethod === "cod" && canCheckout;
 
   const handleVNPayCheckout = async () => {
-    if (!canCheckoutWithVNPay || !cart?.items?.length) {
+    if (!canCheckoutWithVNPay || !hasItems) {
       toast.error("Giỏ hàng của bạn đang trống.");
       return;
     }
 
-    const directItems = cart.items.map((item) => ({
+    const sourceItems = displayItems.length ? displayItems : cart?.items ?? [];
+    const directItems = sourceItems.map((item) => ({
       productId: item.productId,
       qty: item.quantity,
       unitPrice: item.price,
@@ -132,12 +162,13 @@ const CheckoutPage = () => {
   };
 
   const handleCODCheckout = async () => {
-    if (!canCheckoutWithCOD || !cart?.items?.length) {
+    if (!canCheckoutWithCOD || !hasItems) {
       toast.error("Giỏ hàng của bạn đang trống.");
       return;
     }
 
-    const directItems = cart.items.map((item) => ({
+    const sourceItems = displayItems.length ? displayItems : cart?.items ?? [];
+    const directItems = sourceItems.map((item) => ({
       productId: item.productId,
       qty: item.quantity,
       unitPrice: item.price,
@@ -249,47 +280,93 @@ const CheckoutPage = () => {
                   <p className="text-sm text-red-600">{addressError}</p>
                 )}
 
-                {!isAddressLoading && !addressError && defaultAddress && (
-                  <div className="space-y-2 text-sm text-gray-700">
-                    <div className="flex items-center gap-2 font-semibold text-gray-900">
-                      <span>
-                        {defaultAddress.recipientName ||
-                          defaultAddress.fullName ||
-                          "Người nhận"}
-                      </span>
-                      {defaultAddress.isDefault && (
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
-                          Mặc định
-                        </span>
+                {!isAddressLoading &&
+                  !addressError &&
+                  sortedAddresses.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex gap-4 overflow-x-auto pb-2" role="listbox">
+                        {sortedAddresses.map((addr) => {
+                          const addrId = getAddressId(addr);
+                          const isActive = addrId === selectedAddressId;
+                          return (
+                            <button
+                              type="button"
+                              key={addrId ?? addr.phone ?? addr.recipientName}
+                              onClick={() => setSelectedAddressId(addrId)}
+                              className={`min-w-[220px] rounded-2xl border p-4 text-left transition-all ${
+                                isActive
+                                  ? "border-emerald-500 bg-white shadow"
+                                  : "border-dashed border-gray-200 bg-gray-50"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2 text-sm font-semibold text-gray-900">
+                                <span>{addr.recipientName || addr.fullName || "Người nhận"}</span>
+                                {addr.isDefault && (
+                                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
+                                    Mặc định
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">
+                                📞 {addr.phone || addr.phoneNumber || "Chưa cập nhật"}
+                              </p>
+                              <p className="text-xs text-gray-500 line-clamp-2 mt-1">
+                                📍{" "}
+                                {addr.detail ||
+                                  addr.addressLine ||
+                                  addr.fullAddress ||
+                                  "Không có địa chỉ chi tiết"}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {selectedAddress && (
+                        <div className="space-y-2 text-sm text-gray-700">
+                          <div className="flex items-center gap-2 font-semibold text-gray-900">
+                            <span>
+                              {selectedAddress.recipientName ||
+                                selectedAddress.fullName ||
+                                "Người nhận"}
+                            </span>
+                            {selectedAddress.isDefault && (
+                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
+                                Mặc định
+                              </span>
+                            )}
+                          </div>
+                          <p>
+                            📞{" "}
+                            {selectedAddress.phone ||
+                              selectedAddress.phoneNumber ||
+                              "Chưa cập nhật"}
+                          </p>
+                          <p>
+                            📍{" "}
+                            {selectedAddress.detail ||
+                              selectedAddress.addressLine ||
+                              selectedAddress.fullAddress ||
+                              "Không có địa chỉ chi tiết"}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {[
+                              selectedAddress.ward,
+                              selectedAddress.district,
+                              selectedAddress.city,
+                              selectedAddress.province,
+                            ]
+                              .filter(Boolean)
+                              .join(", ")}
+                          </p>
+                        </div>
                       )}
                     </div>
-                    <p>
-                      📞{" "}
-                      {defaultAddress.phone ||
-                        defaultAddress.phoneNumber ||
-                        "Chưa cập nhật"}
-                    </p>
-                    <p>
-                      📍{" "}
-                      {defaultAddress.detail ||
-                        defaultAddress.addressLine ||
-                        defaultAddress.fullAddress ||
-                        "Không có địa chỉ chi tiết"}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {[
-                        defaultAddress.ward,
-                        defaultAddress.district,
-                        defaultAddress.city,
-                        defaultAddress.province,
-                      ]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </p>
-                  </div>
-                )}
+                  )}
 
-                {!isAddressLoading && !addressError && !defaultAddress && (
+                {!isAddressLoading &&
+                  !addressError &&
+                  sortedAddresses.length === 0 && (
                   <div className="text-center space-y-3">
                     <p className="text-sm text-gray-600">
                       Bạn chưa có địa chỉ giao hàng mặc định.
@@ -344,7 +421,7 @@ const CheckoutPage = () => {
               {hasItems && (
                 <div className="space-y-4">
                   <ul className="divide-y rounded-2xl border border-gray-100">
-                    {cart!.items.map((item) => (
+                    {displayItems.map((item) => (
                       <li
                         key={item.productId}
                         className="p-4 flex flex-col gap-4 sm:flex-row sm:items-center"
@@ -540,7 +617,7 @@ const CheckoutPage = () => {
                 Tiến độ hoàn tất
               </p>
               <Progress
-                value={defaultAddress ? 66 : 33}
+                value={selectedAddress ? 66 : 33}
                 className="h-2 bg-gray-100"
               />
               <p className="text-xs text-gray-500">

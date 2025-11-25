@@ -4,12 +4,17 @@ import { Minus, Plus, Trash2, AlertCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/use-cart.store";
 import CheckoutProgress from "@/components/common/cart/checkout-progress";
+import { useCartItemsMeta, type EnhancedCartItem } from "@/hooks/use-cart-items-meta";
+import toast from "react-hot-toast";
+import type { TCartItem } from "@/types/cart";
 const formatCurrency = (value?: number) =>
   (value ?? 0).toLocaleString("vi-VN", { style: "currency", currency: "VND" });
 
 const CartPage = () => {
   const { cart, fetchCart, updateQuantity, removeItem, clearCart, isLoading } =
     useCartStore();
+  const { enhancedItems, computedTotal } = useCartItemsMeta(cart?.items);
+  type DisplayCartItem = EnhancedCartItem | TCartItem;
   const navigate = useNavigate();
   const [selectedShippingMethod, setSelectedShippingMethod] = useState<
     "fast" | "express"
@@ -19,8 +24,20 @@ const CartPage = () => {
     fetchCart().catch(() => undefined);
   }, [fetchCart]);
 
-  const hasItems = (cart?.items?.length ?? 0) > 0;
-  const total = cart?.totalAmount ?? 0;
+  const displayItems: DisplayCartItem[] = enhancedItems.length
+    ? enhancedItems
+    : cart?.items ?? [];
+  const hasItems = displayItems.length > 0;
+  const total = computedTotal ?? cart?.totalAmount ?? 0;
+
+  const handleIncrement = (productId: number, current: number, max?: number | null) => {
+    const nextQuantity = current + 1;
+    if (max && nextQuantity > max) {
+      toast.error(`Chỉ còn ${max} sản phẩm trong kho.`);
+      return;
+    }
+    updateQuantity(productId, nextQuantity);
+  };
 
   return (
     <div className="pb-16">
@@ -73,7 +90,13 @@ const CartPage = () => {
 
               {hasItems && (
                 <ul className="divide-y">
-                  {cart!.items.map((item) => (
+                  {displayItems.map((item) => {
+                    const originalPrice =
+                      "originalPrice" in item ? item.originalPrice : item.price;
+                    const hasDiscount = originalPrice > item.price;
+                    const maxStock =
+                      "stockQuantity" in item ? item.stockQuantity : null;
+                    return (
                     <li key={item.productId} className="p-4 lg:p-6">
                       <div className="grid lg:grid-cols-12 gap-4 items-center">
                         <div className="lg:col-span-5 flex items-center gap-4">
@@ -96,7 +119,12 @@ const CartPage = () => {
                         </div>
 
                         <div className="lg:col-span-2 text-center text-gray-800 font-semibold">
-                          {formatCurrency(item.price)}
+                          <p>{formatCurrency(item.price)}</p>
+                          {hasDiscount && (
+                            <p className="text-xs text-gray-400 line-through">
+                              {formatCurrency(originalPrice)}
+                            </p>
+                          )}
                         </div>
 
                         <div className="lg:col-span-2 flex items-center justify-center">
@@ -121,9 +149,10 @@ const CartPage = () => {
                               type="button"
                               className="p-2 disabled:opacity-40"
                               onClick={() =>
-                                updateQuantity(
+                                handleIncrement(
                                   item.productId,
-                                  item.quantity + 1
+                                  item.quantity,
+                                  maxStock
                                 )
                               }
                               disabled={isLoading}
@@ -148,7 +177,8 @@ const CartPage = () => {
                         </div>
                       </div>
                     </li>
-                  ))}
+                  );
+                })}
                 </ul>
               )}
             </div>

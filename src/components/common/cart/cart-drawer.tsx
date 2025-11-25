@@ -3,6 +3,9 @@ import { Minus, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useCartStore } from "@/store/use-cart.store";
+import { useCartItemsMeta, type EnhancedCartItem } from "@/hooks/use-cart-items-meta";
+import type { TCartItem } from "@/types/cart";
+import toast from "react-hot-toast";
 
 const FREE_SHIPPING_THRESHOLD = 300_000;
 
@@ -20,10 +23,24 @@ const CartDrawer = () => {
     isLoading,
   } = useCartStore();
 
-  const hasItems = (cart?.items?.length ?? 0) > 0;
-  const total = cart?.totalAmount ?? 0;
+  const { enhancedItems, computedTotal } = useCartItemsMeta(cart?.items);
+  type DisplayCartItem = EnhancedCartItem | TCartItem;
+  const displayItems: DisplayCartItem[] = enhancedItems.length
+    ? enhancedItems
+    : cart?.items ?? [];
+  const total = computedTotal ?? cart?.totalAmount ?? 0;
+  const hasItems = displayItems.length > 0;
   const progress = Math.min(100, (total / FREE_SHIPPING_THRESHOLD) * 100);
   const reachedFreeShipping = total >= FREE_SHIPPING_THRESHOLD;
+
+  const handleIncrement = (productId: number, current: number, max?: number | null) => {
+    const nextQuantity = current + 1;
+    if (max && nextQuantity > max) {
+      toast.error(`Chỉ còn ${max} sản phẩm trong kho.`);
+      return;
+    }
+    updateQuantity(productId, nextQuantity);
+  };
 
   const handleCheckout = () => {
     closeDrawer();
@@ -93,7 +110,13 @@ const CartDrawer = () => {
 
           {hasItems && (
             <ul className="space-y-4">
-              {cart!.items.map((item) => (
+              {displayItems.map((item) => {
+                const originalPrice =
+                  "originalPrice" in item ? item.originalPrice : item.price;
+                const hasDiscount = originalPrice > item.price;
+                const maxStock =
+                  "stockQuantity" in item ? item.stockQuantity : null;
+                return (
                 <li
                   key={item.productId}
                   className="flex gap-3 border rounded-xl p-3 shadow-sm"
@@ -111,9 +134,16 @@ const CartDrawer = () => {
                         <p className="font-semibold leading-tight line-clamp-2">
                           {item.productName}
                         </p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {formatCurrency(item.price)}
-                        </p>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          <p className="font-semibold text-gray-900">
+                            {formatCurrency(item.price)}
+                          </p>
+                          {hasDiscount && (
+                            <p className="text-xs text-gray-400 line-through">
+                              {formatCurrency(originalPrice)}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <button
                         type="button"
@@ -143,7 +173,11 @@ const CartDrawer = () => {
                           type="button"
                           className="p-2 disabled:opacity-40"
                           onClick={() =>
-                            updateQuantity(item.productId, item.quantity + 1)
+                            handleIncrement(
+                              item.productId,
+                              item.quantity,
+                              maxStock
+                            )
                           }
                           disabled={isLoading}
                         >
@@ -156,7 +190,8 @@ const CartDrawer = () => {
                     </div>
                   </div>
                 </li>
-              ))}
+              );
+            })}
             </ul>
           )}
         </div>

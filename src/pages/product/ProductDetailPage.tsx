@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ChangeEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import { useAuthStore } from "@/store/use-auth.store";
 import { createReview, getProductReviews } from "@/service/review";
 import type { Review } from "@/types/review.type";
 import { Textarea } from "@/components/ui/textarea";
+import toast from "react-hot-toast";
 
 function formatVND(n: number) {
   return n.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
@@ -54,6 +56,18 @@ function QuantitySelector({
     onChange(newQty);
   };
 
+  const handleManualChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const raw = event.target.value;
+    if (raw === "") {
+      onChange(1);
+      return;
+    }
+    const parsed = Number(raw);
+    if (Number.isNaN(parsed)) return;
+    const clamped = Math.min(safeMax, Math.max(1, parsed));
+    onChange(clamped);
+  };
+
   return (
     <div className="flex items-center gap-2">
       <span className="font-semibold">Số lượng:</span>
@@ -67,7 +81,15 @@ function QuantitySelector({
         >
           <Minus className="h-4 w-4" />
         </Button>
-        <span className="w-10 text-center font-medium">{value}</span>
+        <input
+          type="number"
+          min={1}
+          max={safeMax}
+          inputMode="numeric"
+          className="w-16 text-center font-medium border-x border-gray-200 focus:outline-none"
+          value={value}
+          onChange={handleManualChange}
+        />
         <Button
           variant="ghost"
           size="icon"
@@ -416,6 +438,7 @@ export default function ProductDetailPage() {
   const [isSelectCartDialogOpen, setIsSelectCartDialogOpen] = useState(false);
   const isCartLoading = useCartStore((state) => state.isLoading);
   const addItemToCart = useCartStore((state) => state.addItem);
+  const cartData = useCartStore((state) => state.cart);
   const { user } = useAuthStore();
 
   // Fetch review data for rating display
@@ -557,10 +580,31 @@ export default function ProductDetailPage() {
   }
   if (!product) return <div>thành vinh</div>;
 
+  const ensureStockCapacity = (desiredQuantity: number) => {
+    if (!product || !product.stockQuantity) return true;
+    const existingQuantity =
+      useCartStore
+        .getState()
+        .cart?.items.find((item) => item.productId === product.id)?.quantity ?? 0;
+    const remaining = product.stockQuantity - existingQuantity;
+    if (remaining <= 0) {
+      toast.error("Bạn đã thêm hết số lượng sản phẩm hiện có trong kho.");
+      return false;
+    }
+    if (desiredQuantity > remaining) {
+      toast.error(`Chỉ có thể thêm tối đa ${remaining} sản phẩm nữa.`);
+      return false;
+    }
+    return true;
+  };
+
   const handleAddToCart = async () => {
     if (!product) return;
     if (!user) {
       navigate("/login");
+      return;
+    }
+    if (!ensureStockCapacity(selectedQuantity)) {
       return;
     }
     setIsSelectCartDialogOpen(true);
@@ -570,6 +614,9 @@ export default function ProductDetailPage() {
     if (!product) return;
     if (!user) {
       navigate("/login");
+      return;
+    }
+    if (!ensureStockCapacity(selectedQuantity)) {
       return;
     }
     try {
@@ -593,6 +640,8 @@ export default function ProductDetailPage() {
   const finalPrice = product.discountRate
     ? product.price - product.price * product.discountRate
     : product.price;
+  const existingQuantityInCart =
+    cartData?.items.find((item) => item.productId === product.id)?.quantity ?? 0;
   const freeShippingThreshold = 300000;
   const isEligibleForFreeShipping = finalPrice >= freeShippingThreshold;
   const amountToFreeShipping = Math.max(0, freeShippingThreshold - finalPrice);
@@ -891,6 +940,8 @@ export default function ProductDetailPage() {
           productId={product.id}
           quantity={selectedQuantity}
           price={finalPrice}
+          maxQuantity={product.stockQuantity}
+          existingQuantity={existingQuantityInCart}
           onSuccess={() => {
             // Optionally navigate to cart after adding
           }}

@@ -16,6 +16,7 @@ import { useSharedCartStore } from "@/store/use-shared-cart.store";
 import { useAuthStore } from "@/store/use-auth.store";
 import { formatMoney } from "@/utils/helper";
 import { CreateSharedCartDialog } from "./CreateSharedCartDialog";
+import toast from "react-hot-toast";
 
 interface SelectCartDialogProps {
   open: boolean;
@@ -24,6 +25,8 @@ interface SelectCartDialogProps {
   quantity: number;
   price: number;
   onSuccess?: () => void;
+  maxQuantity?: number | null;
+  existingQuantity?: number;
 }
 
 export function SelectCartDialog({
@@ -33,6 +36,8 @@ export function SelectCartDialog({
   quantity,
   price,
   onSuccess,
+  maxQuantity,
+  existingQuantity,
 }: SelectCartDialogProps) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -61,7 +66,34 @@ export function SelectCartDialog({
   // Filter only OPEN shared carts
   const openSharedCarts = cartList.filter((cart) => cart.status === "OPEN");
 
+  const getExistingQuantity = () => {
+    if (typeof existingQuantity === "number") {
+      return existingQuantity;
+    }
+    return (
+      useCartStore
+        .getState()
+        .cart?.items.find((item) => item.productId === productId)?.quantity ?? 0
+    );
+  };
+
+  const validateAgainstStock = () => {
+    if (typeof maxQuantity !== "number") return true;
+    const current = getExistingQuantity();
+    const remaining = maxQuantity - current;
+    if (remaining <= 0) {
+      toast.error("Bạn đã thêm hết số lượng sản phẩm trong kho.");
+      return false;
+    }
+    if (quantity > remaining) {
+      toast.error(`Bạn chỉ có thể thêm tối đa ${remaining} sản phẩm nữa.`);
+      return false;
+    }
+    return true;
+  };
+
   const handleAddToPersonalCart = async () => {
+    if (!validateAgainstStock()) return;
     setIsLoading(true);
     try {
       await addToPersonalCart({ productId, quantity });
@@ -80,6 +112,7 @@ export function SelectCartDialog({
 
   const handleAddToSharedCart = async () => {
     if (!selectedSharedCartId) return;
+    if (!validateAgainstStock()) return;
     setIsLoading(true);
     try {
       await addToSharedCart({
@@ -105,6 +138,7 @@ export function SelectCartDialog({
     title: string;
     expiresAt: string;
   }) => {
+    if (!validateAgainstStock()) return;
     setIsLoading(true);
     try {
       const success = await createCart(cartData);

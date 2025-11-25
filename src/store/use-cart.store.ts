@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { AddToCartPayload, TCart } from "@/types/cart";
+import type { AddToCartPayload, TCart, TCartItem } from "@/types/cart";
 import {
   addItemToCart,
   clearCartItems,
@@ -8,6 +8,32 @@ import {
 } from "@/service/cart/service";
 import { useAuthStore } from "./use-auth.store";
 import toast from "react-hot-toast";
+
+const sanitizeCartItem = (item: TCartItem): TCartItem => {
+  const safeQuantity = Math.max(1, item.quantity ?? 0);
+  const safePrice = Math.max(0, item.price ?? 0);
+  const providedSubtotal = typeof item.subtotal === "number" ? item.subtotal : safePrice * safeQuantity;
+  const safeSubtotal = Math.max(providedSubtotal, safePrice * safeQuantity, 0);
+  return {
+    ...item,
+    quantity: safeQuantity,
+    price: safePrice,
+    subtotal: safeSubtotal,
+  };
+};
+
+const sanitizeCart = (cart: TCart | null): TCart | null => {
+  if (!cart) return null;
+  const items = (cart.items ?? []).map(sanitizeCartItem);
+  const totalAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  return {
+    ...cart,
+    items,
+    totalAmount,
+    totalItems,
+  };
+};
 
 interface CartState {
   cart: TCart | null;
@@ -41,8 +67,9 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({ isLoading: true });
     try {
       const cart = await fetchCartApi();
-      set({ cart: cart ?? null, initialized: true });
-      return cart ?? null;
+      const safeCart = sanitizeCart(cart ?? null);
+      set({ cart: safeCart, initialized: true });
+      return safeCart;
     } catch (error: any) {
       // Handle errors gracefully - set cart to null instead of throwing
       console.error("fetchCart error in store:", error);
@@ -66,7 +93,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({ isLoading: true });
     try {
       const cart = await addItemToCart(payload);
-      set({ cart, isDrawerOpen: true });
+      set({ cart: sanitizeCart(cart), isDrawerOpen: true });
       toast.success("Đã thêm sản phẩm vào giỏ hàng");
     } finally {
       set({ isLoading: false });
@@ -78,7 +105,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     try {
       await removeItemFromCart(productId);
       const cart = await fetchCartApi();
-      set({ cart: cart ?? null });
+      set({ cart: sanitizeCart(cart ?? null) });
       toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
     } finally {
       set({ isLoading: false });
@@ -106,7 +133,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         productId,
         quantity: delta,
       });
-      set({ cart });
+      set({ cart: sanitizeCart(cart) });
     } finally {
       set({ isLoading: false });
     }
@@ -117,7 +144,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     try {
       await clearCartItems();
       const cart = await fetchCartApi();
-      set({ cart: cart ?? null });
+      set({ cart: sanitizeCart(cart ?? null) });
       toast.success("Đã xóa giỏ hàng");
     } finally {
       set({ isLoading: false });
