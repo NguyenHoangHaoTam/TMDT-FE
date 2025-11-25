@@ -1,7 +1,4 @@
 "use client";
-
-// import type React from "react";
-// import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { User } from "lucide-react";
+import { Eye, EyeOff, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import BackgroundAnimated from "@/components/common/auth/bg-animated";
 import BackgroundBottomImg from "@/components/common/auth/bg-bottom-img";
@@ -22,10 +19,13 @@ import { registerSchema } from "@/utils/validation/auth-schema";
 import { z } from "zod";
 import { useRegister } from "@/hook/auth/use-auth";
 import LoadingBtn from "@/components/common/loading-btn";
+import { useState } from "react";
 
 type FormData = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRePassword, setShowRePassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -158,15 +158,25 @@ export default function RegisterPage() {
                 >
                   Mật khẩu
                 </Label>
-                <Input
-                  {...register("password")}
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  required
-                  minLength={8}
-                  className="h-11 border-2 border-input focus:border-[#74A031] transition-colors duration-300"
-                />
+                <div className="relative">
+                  <Input
+                    {...register("password")}
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    required
+                    minLength={8}
+                    className="h-11 border-2 border-input focus:border-[#74A031] transition-colors duration-300 pr-11"
+                  />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
 
                 {errors.password && (
                   <p className="px-1 text-sm text-red-600 ">
@@ -182,15 +192,27 @@ export default function RegisterPage() {
                 >
                   Nhập lại mật khẩu
                 </Label>
-                <Input
-                  {...register("rePassword")}
-                  id="rePassword"
-                  type="password"
-                  placeholder="••••••••"
-                  required
-                  minLength={8}
-                  className="h-11 border-2 border-input focus:border-[#74A031] transition-colors duration-300"
-                />
+                <div className="relative">
+                  <Input
+                    {...register("rePassword")}
+                    id="rePassword"
+                    type={showRePassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    required
+                    minLength={8}
+                    className="h-11 border-2 border-input focus:border-[#74A031] transition-colors duration-300 pr-11"
+                  />
+                  <button
+                    type="button"
+                    aria-label={
+                      showRePassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                    }
+                    onClick={() => setShowRePassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showRePassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 {errors.rePassword && (
                   <p className="px-1 text-sm text-red-600 ">
                     {errors.rePassword.message}

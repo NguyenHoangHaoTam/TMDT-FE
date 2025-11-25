@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Leaf, LockIcon, User2 } from "lucide-react";
+import { Eye, EyeOff, Leaf, LockIcon, User2 } from "lucide-react";
 import BackgroundAnimated from "@/components/common/auth/bg-animated";
 import BackgroundBottomImg from "@/components/common/auth/bg-bottom-img";
 import { useForm } from "react-hook-form";
@@ -17,11 +17,13 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLogin } from "@/hook/auth/use-auth";
 import LoadingBtn from "@/components/common/loading-btn";
+import { useState } from "react";
 
 type FormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const { login, isPending } = useLogin();
+  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -87,13 +89,23 @@ export default function LoginPage() {
                   <LockIcon size={15} className="text-gray-600" />
                   Mật khẩu
                 </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  {...register("password")}
-                  className="h-11 border-2 mb-0 border-input focus:border-[#74A031] transition-colors duration-300"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    {...register("password")}
+                    className="h-11 border-2 mb-0 border-input focus:border-[#74A031] transition-colors duration-300 pr-11"
+                  />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 {errors.password && (
                   <p className="px-1 text-sm text-red-600 ">
                     {errors.password.message}
